@@ -1,7 +1,7 @@
 import { Client } from '@notionhq/client';
 
 const notion = new Client({
-  auth: 'ntn_b47896027991esG3Ngbx3c9yqdMeJOgAbztbmMJQb5laCs',
+  auth: process.env.NOTION_TOKEN || '',
 });
 
 // Database IDs
@@ -60,11 +60,11 @@ function getNumber(value: any): number {
   return value;
 }
 
-// Query a database (data source in v5)
+// Query a database using standard API
 async function queryDatabase(databaseId: string, sorts: any[] = []) {
   try {
-    const response = await notion.dataSources.query({
-      data_source_id: databaseId,
+    const response = await notion.databases.query({
+      database_id: databaseId,
       sorts,
     });
     return response.results;
