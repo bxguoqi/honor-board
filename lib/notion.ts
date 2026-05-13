@@ -1,8 +1,8 @@
-import { Client } from '@notionhq/client';
+// Notion API helper - using fetch directly to avoid client version issues
 
-const notion = new Client({
-  auth: process.env.NOTION_TOKEN || '',
-});
+const NOTION_TOKEN = process.env.NOTION_TOKEN || '';
+const NOTION_API = 'https://api.notion.com/v1';
+const NOTION_VERSION = '2022-06-28';
 
 // Database IDs
 export const DATABASE_IDS = {
@@ -13,15 +13,15 @@ export const DATABASE_IDS = {
   profile: '35f11d7b89ef8147a5f8ddb33dbadba2',
 };
 
-// Helper to get rich text value
+// Helper functions
 function getRichText(value: any): string {
   if (!value) return '';
-  return value.map((t: any) => t.plain_text).join('');
+  if (Array.isArray(value)) return value.map((t: any) => t.plain_text || '').join('');
+  return '';
 }
 
-// Helper to get file URL
 function getFileUrl(files: any): string {
-  if (!files || files.length === 0) return '';
+  if (!files || !Array.isArray(files) || files.length === 0) return '';
   const file = files[0];
   if (file.type === 'file') {
     let url = file.file.url;
@@ -36,45 +36,51 @@ function getFileUrl(files: any): string {
   return '';
 }
 
-// Helper to get select value
 function getSelect(value: any): string {
   if (!value) return '';
   return value.name || '';
 }
 
-// Helper to get multi select values
 function getMultiSelect(value: any): string[] {
   if (!value) return [];
-  return value.map((s: any) => s.name || '');
+  return (Array.isArray(value) ? value : []).map((s: any) => s.name || '');
 }
 
-// Helper to get date value
 function getDate(value: any): string {
   if (!value || !value.start) return '';
   return value.start;
 }
 
-// Helper to get number value
 function getNumber(value: any): number {
   if (value === null || value === undefined) return 0;
   return value;
 }
 
-// Query a database using standard API
-async function queryDatabase(databaseId: string, sorts: any[] = []) {
+// Query database
+async function queryDatabase(databaseId: string, sorts: any[] = []): Promise<any[]> {
   try {
-    const response = await notion.databases.query({
-      database_id: databaseId,
-      sorts,
+    const res = await fetch(`${NOTION_API}/databases/${databaseId}/query`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${NOTION_TOKEN}`,
+        'Notion-Version': NOTION_VERSION,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ sorts, page_size: 100 }),
     });
-    return response.results;
+    if (!res.ok) {
+      console.error(`Notion API error ${res.status}: ${await res.text()}`);
+      return [];
+    }
+    const data = await res.json();
+    return data.results || [];
   } catch (error) {
     console.error(`Failed to query database ${databaseId}:`, error);
     return [];
   }
 }
 
-// ===== 荣誉榜 =====
+// ===== Types =====
 export interface HonorItem {
   id: string;
   name: string;
@@ -86,27 +92,6 @@ export interface HonorItem {
   description: string;
 }
 
-export async function getHonors(): Promise<HonorItem[]> {
-  const results = await queryDatabase(DATABASE_IDS.honors, [
-    { property: '获奖日期', direction: 'descending' as const },
-  ]);
-
-  return results.map((page: any) => {
-    const props = page.properties;
-    return {
-      id: page.id,
-      name: getRichText(props['名称']?.title),
-      organization: getRichText(props['颁发机构']?.rich_text),
-      date: getDate(props['获奖日期']?.date),
-      level: getSelect(props['级别']?.select),
-      category: getSelect(props['类别']?.select),
-      imageUrl: getFileUrl(props['证书图片']?.files),
-      description: getRichText(props['描述']?.rich_text),
-    };
-  });
-}
-
-// ===== 日常奖励 =====
 export interface RewardItem {
   id: string;
   name: string;
@@ -119,28 +104,6 @@ export interface RewardItem {
   photoUrl: string;
 }
 
-export async function getRewards(): Promise<RewardItem[]> {
-  const results = await queryDatabase(DATABASE_IDS.rewards, [
-    { property: '获取日期', direction: 'descending' as const },
-  ]);
-
-  return results.map((page: any) => {
-    const props = page.properties;
-    return {
-      id: page.id,
-      name: getRichText(props['名称']?.title),
-      date: getDate(props['获取日期']?.date),
-      level: getSelect(props['等级']?.select),
-      categories: getMultiSelect(props['类别']?.multi_select),
-      status: getSelect(props['状态']?.select),
-      useDate: getDate(props['使用日期']?.date),
-      useReason: getRichText(props['使用原因']?.rich_text),
-      photoUrl: getFileUrl(props['照片']?.files),
-    };
-  });
-}
-
-// ===== 零用钱 =====
 export interface AllowanceItem {
   id: string;
   name: string;
@@ -150,25 +113,6 @@ export interface AllowanceItem {
   note: string;
 }
 
-export async function getAllowance(): Promise<AllowanceItem[]> {
-  const results = await queryDatabase(DATABASE_IDS.allowance, [
-    { property: '日期', direction: 'descending' as const },
-  ]);
-
-  return results.map((page: any) => {
-    const props = page.properties;
-    return {
-      id: page.id,
-      name: getRichText(props['项目']?.title),
-      date: getDate(props['日期']?.date),
-      type: getSelect(props['类型']?.select),
-      amount: getNumber(props['金额']?.number),
-      note: getRichText(props['备注']?.rich_text),
-    };
-  });
-}
-
-// ===== 照片墙 =====
 export interface PhotoItem {
   id: string;
   name: string;
@@ -178,25 +122,6 @@ export interface PhotoItem {
   order: number;
 }
 
-export async function getPhotos(): Promise<PhotoItem[]> {
-  const results = await queryDatabase(DATABASE_IDS.photos, [
-    { property: '排序', direction: 'ascending' as const },
-  ]);
-
-  return results.map((page: any) => {
-    const props = page.properties;
-    return {
-      id: page.id,
-      name: getRichText(props['照片名称']?.title),
-      photoUrl: getFileUrl(props['照片']?.files),
-      size: getSelect(props['尺寸']?.select),
-      orientation: getSelect(props['方向']?.select),
-      order: getNumber(props['排序']?.number),
-    };
-  });
-}
-
-// ===== 简历信息 =====
 export interface ProfileItem {
   id: string;
   title: string;
@@ -206,20 +131,97 @@ export interface ProfileItem {
   order: number;
 }
 
-export async function getProfile(): Promise<ProfileItem[]> {
-  const results = await queryDatabase(DATABASE_IDS.profile, [
-    { property: '排序', direction: 'ascending' as const },
+// ===== 荣誉榜 =====
+export async function getHonors(): Promise<HonorItem[]> {
+  const results = await queryDatabase(DATABASE_IDS.honors, [
+    { property: '获奖日期', direction: 'descending' },
   ]);
-
   return results.map((page: any) => {
-    const props = page.properties;
+    const p = page.properties;
     return {
       id: page.id,
-      title: getRichText(props['标题']?.title),
-      type: getSelect(props['类型']?.select),
-      content: getRichText(props['内容']?.rich_text),
-      icon: getRichText(props['图标']?.rich_text),
-      order: getNumber(props['排序']?.number),
+      name: getRichText(p['名称']?.title),
+      organization: getRichText(p['颁发机构']?.rich_text),
+      date: getDate(p['获奖日期']?.date),
+      level: getSelect(p['级别']?.select),
+      category: getSelect(p['类别']?.select),
+      imageUrl: getFileUrl(p['证书图片']?.files),
+      description: getRichText(p['描述']?.rich_text),
+    };
+  });
+}
+
+// ===== 日常奖励 =====
+export async function getRewards(): Promise<RewardItem[]> {
+  const results = await queryDatabase(DATABASE_IDS.rewards, [
+    { property: '获取日期', direction: 'descending' },
+  ]);
+  return results.map((page: any) => {
+    const p = page.properties;
+    return {
+      id: page.id,
+      name: getRichText(p['名称']?.title),
+      date: getDate(p['获取日期']?.date),
+      level: getSelect(p['等级']?.select),
+      categories: getMultiSelect(p['类别']?.multi_select),
+      status: getSelect(p['状态']?.select),
+      useDate: getDate(p['使用日期']?.date),
+      useReason: getRichText(p['使用原因']?.rich_text),
+      photoUrl: getFileUrl(p['照片']?.files),
+    };
+  });
+}
+
+// ===== 零用钱 =====
+export async function getAllowance(): Promise<AllowanceItem[]> {
+  const results = await queryDatabase(DATABASE_IDS.allowance, [
+    { property: '日期', direction: 'descending' },
+  ]);
+  return results.map((page: any) => {
+    const p = page.properties;
+    return {
+      id: page.id,
+      name: getRichText(p['项目']?.title),
+      date: getDate(p['日期']?.date),
+      type: getSelect(p['类型']?.select),
+      amount: getNumber(p['金额']?.number),
+      note: getRichText(p['备注']?.rich_text),
+    };
+  });
+}
+
+// ===== 照片墙 =====
+export async function getPhotos(): Promise<PhotoItem[]> {
+  const results = await queryDatabase(DATABASE_IDS.photos, [
+    { property: '排序', direction: 'ascending' },
+  ]);
+  return results.map((page: any) => {
+    const p = page.properties;
+    return {
+      id: page.id,
+      name: getRichText(p['照片名称']?.title),
+      photoUrl: getFileUrl(p['照片']?.files),
+      size: getSelect(p['尺寸']?.select),
+      orientation: getSelect(p['方向']?.select),
+      order: getNumber(p['排序']?.number),
+    };
+  });
+}
+
+// ===== 简历信息 =====
+export async function getProfile(): Promise<ProfileItem[]> {
+  const results = await queryDatabase(DATABASE_IDS.profile, [
+    { property: '排序', direction: 'ascending' },
+  ]);
+  return results.map((page: any) => {
+    const p = page.properties;
+    return {
+      id: page.id,
+      title: getRichText(p['标题']?.title),
+      type: getSelect(p['类型']?.select),
+      content: getRichText(p['内容']?.rich_text),
+      icon: getRichText(p['图标']?.rich_text),
+      order: getNumber(p['排序']?.number),
     };
   });
 }
