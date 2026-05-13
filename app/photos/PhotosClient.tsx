@@ -23,6 +23,42 @@ const SIZE_LABEL: Record<string, string> = {
   '1x1': '1×1',
 };
 
+// 生成渐变色 SVG 作为默认图片
+function getDefaultImageSvg(gradient: string, size: string): string {
+  const colors: Record<string, [string, string]> = {
+    'from-pink-300 to-rose-400': ['#F9A8D4', '#FB7185'],
+    'from-purple-300 to-indigo-400': ['#D8B4FE', '#818CF8'],
+    'from-blue-300 to-cyan-400': ['#93C5FD', '#22D3EE'],
+    'from-green-300 to-emerald-400': ['#86EFAC', '#34D399'],
+    'from-yellow-300 to-amber-400': ['#FDE047', '#FBBF24'],
+    'from-orange-300 to-red-400': ['#FDBA74', '#F87171'],
+    'from-teal-300 to-cyan-500': ['#5EEAD4', '#06B6D4'],
+    'from-fuchsia-300 to-pink-500': ['#F0ABFC', '#EC4899'],
+  };
+  const [c1, c2] = colors[gradient] || ['#F9A8D4', '#FB7185'];
+  
+  // 花朵图案 SVG
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+    <defs>
+      <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="${c1}"/>
+        <stop offset="100%" stop-color="${c2}"/>
+      </linearGradient>
+    </defs>
+    <rect width="200" height="200" fill="url(#g)"/>
+    <g transform="translate(100,100)" opacity="0.3">
+      <circle cx="0" cy="-30" r="20" fill="white"/>
+      <circle cx="28" cy="-10" r="20" fill="white"/>
+      <circle cx="18" cy="25" r="20" fill="white"/>
+      <circle cx="-18" cy="25" r="20" fill="white"/>
+      <circle cx="-28" cy="-10" r="20" fill="white"/>
+      <circle cx="0" cy="0" r="15" fill="${c2}"/>
+    </g>
+  </svg>`;
+  
+  return `data:image/svg+xml;base64,${btoa(svg)}`;
+}
+
 export default function PhotosClient({
   photos,
   goldCount = 0,
@@ -42,7 +78,7 @@ export default function PhotosClient({
     }
   };
 
-  const totalSlots = goldCount + silverCount + bronzeCount; // 照片位数量
+  const totalSlots = goldCount + silverCount + bronzeCount;
   const filledCount = photos.filter(p => p.photoUrl).length;
 
   return (
@@ -77,39 +113,35 @@ export default function PhotosClient({
           {photos.map((photo, index) => {
             const size = photo.size || '1x1';
             const gradient = GRADIENTS[index % GRADIENTS.length];
+            
+            // 使用实际照片或默认花朵图片
+            const imageUrl = photo.photoUrl || getDefaultImageSvg(gradient, size);
+            const isPlaceholder = !photo.photoUrl;
 
-            if (photo.photoUrl) {
-              return (
-                <div
-                  key={photo.id}
-                  className={`${sizeClass(size)} relative overflow-hidden rounded-lg group`}
-                >
-                  <img
-                    src={photo.photoUrl}
-                    alt={photo.name}
-                    className="w-full h-full object-cover"
-                    loading="lazy"
-                  />
-                  {photo.name && (
-                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/40 to-transparent p-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <span className="text-white text-[10px]">{photo.name}</span>
-                    </div>
-                  )}
-                </div>
-              );
-            }
-
-            // 占位符 - 根据奖牌大小显示
             return (
               <div
-                key={photo.id || `placeholder-${index}`}
-                className={`${sizeClass(size)} border-2 border-dashed border-pink-200 rounded-lg flex flex-col items-center justify-center bg-gradient-to-br ${gradient} bg-opacity-20 min-h-[80px]`}
+                key={photo.id}
+                className={`${sizeClass(size)} relative overflow-hidden rounded-lg group ${isPlaceholder ? 'opacity-80' : ''}`}
               >
-                <span className="text-3xl opacity-30">{MEDAL_EMOJI[size]}</span>
-                <span className="text-[9px] text-pink-300 mt-1">{SIZE_LABEL[size]}</span>
-                <span className="text-pink-400 text-lg mt-0.5">+</span>
+                <img
+                  src={imageUrl}
+                  alt={photo.name}
+                  className="w-full h-full object-cover"
+                  loading="lazy"
+                />
+                {/* 占位符叠加层 */}
+                {isPlaceholder && (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/10">
+                    <span className="text-4xl drop-shadow-lg">{MEDAL_EMOJI[size]}</span>
+                    <span className="text-white text-xs font-bold mt-2 drop-shadow-md">{SIZE_LABEL[size]}</span>
+                    <span className="text-white text-2xl mt-1 drop-shadow-md">+</span>
+                  </div>
+                )}
+                {/* 悬停显示名称 */}
                 {photo.name && (
-                  <span className="text-[8px] text-pink-300 mt-0.5 px-1 truncate max-w-full">{photo.name}</span>
+                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <span className="text-white text-xs">{photo.name}</span>
+                  </div>
                 )}
               </div>
             );
