@@ -68,14 +68,14 @@ body {
   gap: 4px;
 }
 
-.photo-item-2x3 {
+.photo-item-2x2 {
   grid-column: span 2;
-  grid-row: span 3;
+  grid-row: span 2;
 }
 
-.photo-item-1x2 {
-  grid-column: span 1;
-  grid-row: span 2;
+.photo-item-2x1 {
+  grid-column: span 2;
+  grid-row: span 1;
 }
 
 .photo-item-1x1 {
