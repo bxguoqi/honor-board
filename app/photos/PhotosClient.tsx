@@ -42,7 +42,7 @@ export default function PhotosClient({
     }
   };
 
-  const totalSlots = goldCount * 6 + silverCount * 2 + bronzeCount * 1;
+  const totalSlots = goldCount + silverCount + bronzeCount; // 照片位数量
   const filledCount = photos.filter(p => p.photoUrl).length;
 
   return (
