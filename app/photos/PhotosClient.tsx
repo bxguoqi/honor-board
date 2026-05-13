@@ -12,14 +12,14 @@ const GRADIENTS = [
 ];
 
 const MEDAL_EMOJI: Record<string, string> = {
-  '2x3': '🥇',
-  '1x2': '🥈',
+  '2x2': '🥇',
+  '2x1': '🥈',
   '1x1': '🥉',
 };
 
 const SIZE_LABEL: Record<string, string> = {
-  '2x3': '2×3',
-  '1x2': '1×2',
+  '2x2': '2×2',
+  '2x1': '2×1',
   '1x1': '1×1',
 };
 
@@ -72,8 +72,8 @@ export default function PhotosClient({
 }) {
   const sizeClass = (size: string) => {
     switch (size) {
-      case '2x3': return 'photo-item-2x3';
-      case '1x2': return 'photo-item-1x2';
+      case '2x2': return 'photo-item-2x2';
+      case '2x1': return 'photo-item-2x1';
       default: return 'photo-item-1x1';
     }
   };
