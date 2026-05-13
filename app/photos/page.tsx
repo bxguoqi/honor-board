@@ -10,28 +10,23 @@ export default async function PhotosPage() {
   const silverCount = rewards.filter(r => r.level === '银牌').length;
   const bronzeCount = rewards.filter(r => r.level === '铜牌').length;
 
-  // 已上传的照片按尺寸分类
-  const uploadedBySize: Record<string, PhotoItem[]> = {
-    '2x2': [],
-    '2x1': [],
-    '1x1': [],
-  };
-  for (const photo of photos) {
-    const size = photo.size || '1x1';
-    if (uploadedBySize[size]) {
-      uploadedBySize[size].push(photo);
-    }
-  }
+  // 已上传的照片 - 按顺序分配，不区分尺寸
+  const uploadedPhotos = photos.filter(p => p.photoUrl);
+  let uploadedIndex = 0;
 
-  // 生成照片位列表
+  // 生成照片位列表 - 尺寸由奖牌类型决定
   const photoSlots: PhotoItem[] = [];
   let order = 1;
 
   // 金牌照片位 (2x2)
   for (let i = 0; i < goldCount; i++) {
-    const uploaded = uploadedBySize['2x2'][i];
+    const uploaded = uploadedPhotos[uploadedIndex++];
     if (uploaded) {
-      photoSlots.push({ ...uploaded, order });
+      photoSlots.push({ 
+        ...uploaded, 
+        size: '2x2', // 强制使用2x2
+        order 
+      });
     } else {
       photoSlots.push({
         id: `slot-gold-${i}`,
@@ -47,9 +42,13 @@ export default async function PhotosPage() {
 
   // 银牌照片位 (2x1)
   for (let i = 0; i < silverCount; i++) {
-    const uploaded = uploadedBySize['2x1'][i];
+    const uploaded = uploadedPhotos[uploadedIndex++];
     if (uploaded) {
-      photoSlots.push({ ...uploaded, order });
+      photoSlots.push({ 
+        ...uploaded, 
+        size: '2x1', // 强制使用2x1
+        order 
+      });
     } else {
       photoSlots.push({
         id: `slot-silver-${i}`,
@@ -65,9 +64,13 @@ export default async function PhotosPage() {
 
   // 铜牌照片位 (1x1)
   for (let i = 0; i < bronzeCount; i++) {
-    const uploaded = uploadedBySize['1x1'][i];
+    const uploaded = uploadedPhotos[uploadedIndex++];
     if (uploaded) {
-      photoSlots.push({ ...uploaded, order });
+      photoSlots.push({ 
+        ...uploaded, 
+        size: '1x1', // 强制使用1x1
+        order 
+      });
     } else {
       photoSlots.push({
         id: `slot-bronze-${i}`,
