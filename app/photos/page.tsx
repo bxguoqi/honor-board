@@ -10,74 +10,76 @@ export default async function PhotosPage() {
   const silverCount = rewards.filter(r => r.level === '银牌').length;
   const bronzeCount = rewards.filter(r => r.level === '铜牌').length;
 
-  // 生成照片位列表（已上传 + 待添加）
-  const photoSlots: PhotoItem[] = [];
-
-  // 已上传的照片
+  // 已上传的照片按尺寸分类
+  const uploadedBySize: Record<string, PhotoItem[]> = {
+    '2x3': [],
+    '1x2': [],
+    '1x1': [],
+  };
   for (const photo of photos) {
-    photoSlots.push(photo);
+    const size = photo.size || '1x1';
+    if (uploadedBySize[size]) {
+      uploadedBySize[size].push(photo);
+    }
   }
 
-  // 根据奖牌生成待添加的照片位
-  const usedOrders = new Set(photos.map(p => p.order));
+  // 生成照片位列表
+  const photoSlots: PhotoItem[] = [];
   let order = 1;
 
-  // 金牌照片位 (2x3)
-  let goldSlotsCreated = 0;
-  for (const reward of rewards.filter(r => r.level === '金牌')) {
-    if (goldSlotsCreated >= goldCount) break;
-    if (!usedOrders.has(order)) {
+  // 金牌照片位 (2x3) - 固定3个大格子
+  for (let i = 0; i < goldCount; i++) {
+    const uploaded = uploadedBySize['2x3'][i];
+    if (uploaded) {
+      photoSlots.push({ ...uploaded, order });
+    } else {
       photoSlots.push({
-        id: `slot-gold-${goldSlotsCreated}`,
-        name: `${reward.name} 的照片位`,
+        id: `slot-gold-${i}`,
+        name: `金牌照片位 ${i + 1}`,
         photoUrl: '',
         size: '2x3',
         orientation: '横向',
         order: order,
       });
     }
-    goldSlotsCreated++;
     order++;
   }
 
-  // 银牌照片位 (1x2)
-  let silverSlotsCreated = 0;
-  for (const reward of rewards.filter(r => r.level === '银牌')) {
-    if (silverSlotsCreated >= silverCount) break;
-    if (!usedOrders.has(order)) {
+  // 银牌照片位 (1x2) - 固定2个中格子
+  for (let i = 0; i < silverCount; i++) {
+    const uploaded = uploadedBySize['1x2'][i];
+    if (uploaded) {
+      photoSlots.push({ ...uploaded, order });
+    } else {
       photoSlots.push({
-        id: `slot-silver-${silverSlotsCreated}`,
-        name: `${reward.name} 的照片位`,
+        id: `slot-silver-${i}`,
+        name: `银牌照片位 ${i + 1}`,
         photoUrl: '',
         size: '1x2',
         orientation: '横向',
         order: order,
       });
     }
-    silverSlotsCreated++;
     order++;
   }
 
-  // 铜牌照片位 (1x1)
-  let bronzeSlotsCreated = 0;
-  for (const reward of rewards.filter(r => r.level === '铜牌')) {
-    if (bronzeSlotsCreated >= bronzeCount) break;
-    if (!usedOrders.has(order)) {
+  // 铜牌照片位 (1x1) - 固定3个小格子
+  for (let i = 0; i < bronzeCount; i++) {
+    const uploaded = uploadedBySize['1x1'][i];
+    if (uploaded) {
+      photoSlots.push({ ...uploaded, order });
+    } else {
       photoSlots.push({
-        id: `slot-bronze-${bronzeSlotsCreated}`,
-        name: `${reward.name} 的照片位`,
+        id: `slot-bronze-${i}`,
+        name: `铜牌照片位 ${i + 1}`,
         photoUrl: '',
         size: '1x1',
         orientation: '横向',
         order: order,
       });
     }
-    bronzeSlotsCreated++;
     order++;
   }
-
-  // 按排序
-  photoSlots.sort((a, b) => a.order - b.order);
 
   return (
     <PhotosClient
