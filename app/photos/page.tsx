@@ -12,8 +12,8 @@ export default async function PhotosPage() {
 
   // 已上传的照片按尺寸分类
   const uploadedBySize: Record<string, PhotoItem[]> = {
-    '2x3': [],
-    '1x2': [],
+    '2x2': [],
+    '2x1': [],
     '1x1': [],
   };
   for (const photo of photos) {
@@ -27,9 +27,9 @@ export default async function PhotosPage() {
   const photoSlots: PhotoItem[] = [];
   let order = 1;
 
-  // 金牌照片位 (2x3) - 固定3个大格子
+  // 金牌照片位 (2x2)
   for (let i = 0; i < goldCount; i++) {
-    const uploaded = uploadedBySize['2x3'][i];
+    const uploaded = uploadedBySize['2x2'][i];
     if (uploaded) {
       photoSlots.push({ ...uploaded, order });
     } else {
@@ -37,7 +37,7 @@ export default async function PhotosPage() {
         id: `slot-gold-${i}`,
         name: `金牌照片位 ${i + 1}`,
         photoUrl: '',
-        size: '2x3',
+        size: '2x2',
         orientation: '横向',
         order: order,
       });
@@ -45,9 +45,9 @@ export default async function PhotosPage() {
     order++;
   }
 
-  // 银牌照片位 (1x2) - 固定2个中格子
+  // 银牌照片位 (2x1)
   for (let i = 0; i < silverCount; i++) {
-    const uploaded = uploadedBySize['1x2'][i];
+    const uploaded = uploadedBySize['2x1'][i];
     if (uploaded) {
       photoSlots.push({ ...uploaded, order });
     } else {
@@ -55,7 +55,7 @@ export default async function PhotosPage() {
         id: `slot-silver-${i}`,
         name: `银牌照片位 ${i + 1}`,
         photoUrl: '',
-        size: '1x2',
+        size: '2x1',
         orientation: '横向',
         order: order,
       });
@@ -63,7 +63,7 @@ export default async function PhotosPage() {
     order++;
   }
 
-  // 铜牌照片位 (1x1) - 固定3个小格子
+  // 铜牌照片位 (1x1)
   for (let i = 0; i < bronzeCount; i++) {
     const uploaded = uploadedBySize['1x1'][i];
     if (uploaded) {
